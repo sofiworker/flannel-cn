@@ -76,6 +76,7 @@ type kubeSubnetManager struct {
 	snFileInfo                *subnetFileInfo
 }
 
+// NewSubnetManager 创建一个 k8s 的 subnetManager
 func NewSubnetManager(ctx context.Context, apiUrl, kubeconfig, prefix, netConfPath string, setNodeNetworkUnavailable, useMultiClusterCidr bool) (subnet.Manager, error) {
 	var cfg *rest.Config
 	var err error
@@ -87,6 +88,7 @@ func NewSubnetManager(ctx context.Context, apiUrl, kubeconfig, prefix, netConfPa
 		return nil, fmt.Errorf("fail to create kubernetes config: %v", err)
 	}
 
+	// 使用 config 文件创建 client-go 客户端
 	c, err := clientset.NewForConfig(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize client: %v", err)
@@ -118,6 +120,7 @@ func NewSubnetManager(ctx context.Context, apiUrl, kubeconfig, prefix, netConfPa
 		return nil, fmt.Errorf("failed to read net conf: %v", err)
 	}
 
+	// 子网配置解析
 	sc, err := subnet.ParseConfig(string(netConf))
 	if err != nil {
 		return nil, fmt.Errorf("error parsing subnet config: %s", err)
@@ -130,6 +133,7 @@ func NewSubnetManager(ctx context.Context, apiUrl, kubeconfig, prefix, netConfPa
 		}
 	}
 
+	// 这里比较重要的函数 - 监听集群节点的子网租约，client-go informer 机制
 	sm, err := newKubeSubnetManager(ctx, c, sc, nodeName, prefix, useMultiClusterCidr)
 	if err != nil {
 		return nil, fmt.Errorf("error creating network manager: %s", err)
@@ -139,6 +143,7 @@ func NewSubnetManager(ctx context.Context, apiUrl, kubeconfig, prefix, netConfPa
 	if sm.disableNodeInformer {
 		log.Infof("Node controller skips sync")
 	} else {
+		// 运行 list-watch
 		go sm.Run(context.Background())
 
 		log.Infof("Waiting %s for node controller to sync", nodeControllerSyncTimeout)
@@ -156,6 +161,7 @@ func NewSubnetManager(ctx context.Context, apiUrl, kubeconfig, prefix, netConfPa
 
 // newKubeSubnetManager fills the kubeSubnetManager. The most important part is the controller which will
 // watch for kubernetes node updates
+// 监视集群节点的变动并对节点子网的租约进行操作：增加、更新、删除
 func newKubeSubnetManager(ctx context.Context, c clientset.Interface, sc *subnet.Config, nodeName, prefix string, useMultiClusterCidr bool) (*kubeSubnetManager, error) {
 	var err error
 	var ksm kubeSubnetManager
@@ -179,6 +185,7 @@ func newKubeSubnetManager(ctx context.Context, c clientset.Interface, sc *subnet
 			scale = n
 		}
 	}
+	// 事件队列的长度
 	ksm.events = make(chan subnet.Event, scale)
 	// when backend type is alloc, someone else (e.g. cloud-controller-managers) is taking care of the routing, thus we do not need informer
 	// See https://github.com/flannel-io/flannel/issues/1617
@@ -487,6 +494,7 @@ func (ksm *kubeSubnetManager) Run(ctx context.Context) {
 }
 
 // nodeToLease updates the lease with information fetch from the node, e.g. PodCIDR
+// 新增 node 节点的 etcd 租约
 func (ksm *kubeSubnetManager) nodeToLease(n v1.Node) (l subnet.Lease, err error) {
 	if ksm.enableIPv4 {
 		l.Attrs.PublicIP, err = ip.ParseIP4(n.Annotations[ksm.annotations.BackendPublicIP])

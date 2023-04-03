@@ -23,6 +23,7 @@ import (
 	"golang.org/x/net/context"
 )
 
+// 不同的 backend 通过不同的类型中的 init 函数调用 Register(name string, ctor BackendCtor) 进行注入
 var constructors = make(map[string]BackendCtor)
 
 type Manager interface {
@@ -53,6 +54,7 @@ func (bm *manager) GetBackend(backendType string) (Backend, error) {
 
 	betype := strings.ToLower(backendType)
 	// see if one is already running
+	// 如果有运行的后端，直接返回该后端否则需要创建一个
 	if be, ok := bm.active[betype]; ok {
 		return be, nil
 	}

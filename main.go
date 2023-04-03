@@ -29,9 +29,9 @@ import (
 	"time"
 
 	"github.com/coreos/pkg/flagutil"
-	"github.com/flannel-io/flannel/pkg/iptables"
 	"github.com/flannel-io/flannel/pkg/ip"
 	"github.com/flannel-io/flannel/pkg/ipmatch"
+	"github.com/flannel-io/flannel/pkg/iptables"
 	"github.com/flannel-io/flannel/pkg/subnet"
 	etcd "github.com/flannel-io/flannel/pkg/subnet/etcd"
 	"github.com/flannel-io/flannel/pkg/subnet/kube"
@@ -221,6 +221,7 @@ func main() {
 	// Go routines spawned from main.go coordinate using a WaitGroup. This provides a mechanism to allow the shutdownHandler goroutine
 	// to block until all the goroutines return . If those goroutines spawn other goroutines then they are responsible for
 	// blocking and returning only when cancel() is called.
+	// 全局 context
 	ctx, cancel := context.WithCancel(context.Background())
 
 	sm, err := newSubnetManager(ctx)
@@ -243,6 +244,7 @@ func main() {
 		wg.Done()
 	}()
 
+	// 健康检查，起了一个 http 服务器
 	if opts.healthzPort > 0 {
 		mustRunHealthz(ctx.Done(), &wg)
 	}
@@ -255,6 +257,7 @@ func main() {
 	}
 
 	// Get ip family stack
+	// 网络类型：ipv4 ipv6 双栈
 	ipStack, stackErr := ipmatch.GetIPFamily(config.EnableIPv4, config.EnableIPv6)
 	if stackErr != nil {
 		log.Error(stackErr.Error())
@@ -267,9 +270,10 @@ func main() {
 		PublicIP:   opts.publicIP,
 		PublicIPv6: opts.publicIPv6,
 	}
+	// 寻找主机上的网络接口、路由等配置
 	// Check the default interface only if no interfaces are specified
 	if len(opts.iface) == 0 && len(opts.ifaceRegex) == 0 && len(opts.ifaceCanReach) == 0 {
-		if len(opts.publicIP) > 0 {
+		if len(opts.publicIP) > 0 { // 如果设置了集群内 node 相互通信的 ip
 			extIface, err = ipmatch.LookupExtIface(opts.publicIP, "", "", ipStack, optsPublicIP)
 		} else {
 			extIface, err = ipmatch.LookupExtIface(opts.publicIPv6, "", "", ipStack, optsPublicIP)
@@ -329,6 +333,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	// 这里假设 flannel 使用 vxlan
 	bn, err := be.RegisterNetwork(ctx, &wg, config)
 	if err != nil {
 		log.Errorf("Error registering network: %s", err)
@@ -428,6 +433,7 @@ func main() {
 		}
 	}
 
+	// 将现有配置写入配置文件
 	if err := sm.HandleSubnetFile(opts.subnetFile, config, opts.ipMasq, bn.Lease().Subnet, bn.Lease().IPv6Subnet, bn.MTU()); err != nil {
 		// Continue, even though it failed.
 		log.Warningf("Failed to write subnet file: %s", err)
@@ -533,6 +539,7 @@ func shutdownHandler(ctx context.Context, sigs chan os.Signal, cancel context.Ca
 func getConfig(ctx context.Context, sm subnet.Manager) (*subnet.Config, error) {
 	// Retry every second until it succeeds
 	for {
+		// 获取子网配置
 		config, err := sm.GetNetworkConfig(ctx)
 		if err != nil {
 			log.Errorf("Couldn't fetch network config: %s", err)
