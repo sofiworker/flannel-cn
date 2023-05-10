@@ -37,6 +37,7 @@ func WatchLeases(ctx context.Context, sm Manager, ownLease *Lease, receiver chan
 			return
 		}
 	}()
+	// 节点的事件监听
 	for watchResults := range leaseWatchChan {
 		for _, wr := range watchResults {
 			var batch []Event

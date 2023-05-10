@@ -91,6 +91,7 @@ type vxlanLeaseAttrs struct {
 	VtepMAC hardwareAddr
 }
 
+// handleSubnetEvents 处理子网租约事件
 func (nw *network) handleSubnetEvents(batch []subnet.Event) {
 	for _, event := range batch {
 		sn := event.Lease.Subnet

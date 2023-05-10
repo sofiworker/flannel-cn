@@ -141,6 +141,7 @@ func (be *VXLANBackend) RegisterNetwork(ctx context.Context, wg *sync.WaitGroup,
 
 	var dev, v6Dev *vxlanDevice
 	var err error
+	// 构建 vxlan 设备
 	if config.EnableIPv4 {
 		devAttrs := vxlanDeviceAttrs{
 			vni:       uint32(cfg.VNI),
@@ -176,12 +177,14 @@ func (be *VXLANBackend) RegisterNetwork(ctx context.Context, wg *sync.WaitGroup,
 		}
 		v6Dev.directRouting = cfg.DirectRouting
 	}
+	// -------- 结束 ---------
 
 	subnetAttrs, err := newSubnetAttrs(be.extIface.ExtAddr, be.extIface.ExtV6Addr, uint16(cfg.VNI), dev, v6Dev)
 	if err != nil {
 		return nil, err
 	}
 
+	// 获取节点当前子网租约
 	lease, err := be.subnetMgr.AcquireLease(ctx, subnetAttrs)
 	switch err {
 	case nil:

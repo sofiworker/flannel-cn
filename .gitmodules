@@ -1,0 +1,3 @@
+[submodule "cni-plugin"]
+	path = cni-plugin
+	url = https://github.com/flannel-io/cni-plugin.git
