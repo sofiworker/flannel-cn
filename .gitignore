@@ -13,3 +13,4 @@ dist/qemu-*
 vendor/*
 e2e/scratch/*
 e2e/kube-flannel.yml
+go.sum
