@@ -115,12 +115,18 @@ func NewSubnetManager(ctx context.Context, apiUrl, kubeconfig, prefix, netConfPa
 		}
 	}
 
+	// 这里读取网络配置信息，默认是容器的 /etc/kube-flannel/net-conf.json
+	// {
+	// 	"Network": "172.18.0.0/16",
+	// 	"Backend": {
+	// 	  "Type": "vxlan"
+	// 	}
+	// }	  
 	netConf, err := os.ReadFile(netConfPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read net conf: %v", err)
 	}
 
-	// 子网配置解析
 	sc, err := subnet.ParseConfig(string(netConf))
 	if err != nil {
 		return nil, fmt.Errorf("error parsing subnet config: %s", err)
@@ -133,7 +139,7 @@ func NewSubnetManager(ctx context.Context, apiUrl, kubeconfig, prefix, netConfPa
 		}
 	}
 
-	// 这里比较重要的函数 - 监听集群节点的子网租约，client-go informer 机制
+	// 重要的函数 - 监听集群节点的子网租约，client-go informer 机制
 	sm, err := newKubeSubnetManager(ctx, c, sc, nodeName, prefix, useMultiClusterCidr)
 	if err != nil {
 		return nil, fmt.Errorf("error creating network manager: %s", err)
@@ -143,7 +149,7 @@ func NewSubnetManager(ctx context.Context, apiUrl, kubeconfig, prefix, netConfPa
 	if sm.disableNodeInformer {
 		log.Infof("Node controller skips sync")
 	} else {
-		// 运行 list-watch
+		// 运行 node 上的 list-watch
 		go sm.Run(context.Background())
 
 		log.Infof("Waiting %s for node controller to sync", nodeControllerSyncTimeout)

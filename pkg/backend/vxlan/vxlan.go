@@ -141,7 +141,7 @@ func (be *VXLANBackend) RegisterNetwork(ctx context.Context, wg *sync.WaitGroup,
 
 	var dev, v6Dev *vxlanDevice
 	var err error
-	// 构建 vxlan 设备
+	// 构建 vxlan 接口
 	if config.EnableIPv4 {
 		devAttrs := vxlanDeviceAttrs{
 			vni:       uint32(cfg.VNI),

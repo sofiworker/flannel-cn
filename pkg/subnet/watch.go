@@ -29,6 +29,7 @@ func WatchLeases(ctx context.Context, sm Manager, ownLease *Lease, receiver chan
 		ownLease: ownLease,
 	}
 
+	// 这里 chan 用于 NodeInformer 的监听并传递事件回到此处
 	leaseWatchChan := make(chan []LeaseWatchResult)
 	go func() {
 		err := sm.WatchLeases(ctx, leaseWatchChan)

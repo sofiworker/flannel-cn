@@ -118,8 +118,10 @@ func init() {
 	flannelFlags.StringVar(&opts.publicIP, "public-ip", "", "IP accessible by other nodes for inter-host communication")
 	flannelFlags.StringVar(&opts.publicIPv6, "public-ipv6", "", "IPv6 accessible by other nodes for inter-host communication")
 	flannelFlags.IntVar(&opts.subnetLeaseRenewMargin, "subnet-lease-renew-margin", 60, "subnet lease renewal margin, in minutes, ranging from 1 to 1439")
+	// 默认情况下，k8s 集群中这两项均为 true
 	flannelFlags.BoolVar(&opts.ipMasq, "ip-masq", false, "setup IP masquerade rule for traffic destined outside of overlay network")
 	flannelFlags.BoolVar(&opts.kubeSubnetMgr, "kube-subnet-mgr", false, "contact the Kubernetes API for subnet assignment instead of etcd.")
+	// ---- 结束 ----
 	flannelFlags.StringVar(&opts.kubeApiUrl, "kube-api-url", "", "Kubernetes API server URL. Does not need to be specified if flannel is running in a pod.")
 	flannelFlags.StringVar(&opts.kubeAnnotationPrefix, "kube-annotation-prefix", "flannel.alpha.coreos.com", `Kubernetes annotation prefix. Can contain single slash "/", otherwise it will be appended at the end.`)
 	flannelFlags.StringVar(&opts.kubeConfigFile, "kubeconfig-file", "", "kubeconfig file location. Does not need to be specified if flannel is running in a pod.")
@@ -169,6 +171,7 @@ func usage() {
 }
 
 func newSubnetManager(ctx context.Context) (subnet.Manager, error) {
+	// k8s 走该分支
 	if opts.kubeSubnetMgr {
 		return kube.NewSubnetManager(ctx,
 			opts.kubeApiUrl,
@@ -433,7 +436,8 @@ func main() {
 		}
 	}
 
-	// 将现有配置写入配置文件
+	// 将现有配置写入配置文件 /run/flannel/subnet.env
+	// 该文件被挂载到主机上的该目录，提供给 /opt/cni/bin/flannel 二进制进行使用
 	if err := sm.HandleSubnetFile(opts.subnetFile, config, opts.ipMasq, bn.Lease().Subnet, bn.Lease().IPv6Subnet, bn.MTU()); err != nil {
 		// Continue, even though it failed.
 		log.Warningf("Failed to write subnet file: %s", err)
@@ -470,6 +474,7 @@ func main() {
 	os.Exit(0)
 }
 
+// 回收 ip
 func recycleIPTables(nw ip.IP4Net, lease *subnet.Lease) error {
 	prevNetworks := ReadCIDRsFromSubnetFile(opts.subnetFile, "FLANNEL_NETWORK")
 	prevSubnet := ReadCIDRFromSubnetFile(opts.subnetFile, "FLANNEL_SUBNET")
