@@ -1,0 +1,7 @@
+/bin
+/vendor
+/dist
+.idea*
+static-check.log
+.vscode/**
+go.sum

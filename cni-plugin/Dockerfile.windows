@@ -1,0 +1,6 @@
+FROM golang:1.19.2
+
+COPY . /go/src
+WORKDIR /go/src
+RUN go mod vendor && go mod tidy
+RUN make build_windows
