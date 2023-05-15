@@ -351,7 +351,7 @@ func (ksm *kubeSubnetManager) AcquireLease(ctx context.Context, attrs *subnet.Le
 
 	var cidr, ipv6Cidr *net.IPNet
 	switch {
-	case len(n.Spec.PodCIDRs) == 0:
+	case len(n.Spec.PodCIDRs) == 0: // 集群 node 中 spec.podCIDRs 字段对应的信息
 		_, parseCidr, err := net.ParseCIDR(n.Spec.PodCIDR)
 		if err != nil {
 			return nil, err
@@ -420,6 +420,7 @@ func (ksm *kubeSubnetManager) AcquireLease(ctx context.Context, attrs *subnet.Le
 		}
 		n.Annotations[ksm.annotations.SubnetKubeManaged] = "true"
 
+		// 更新一下 node 信息
 		oldData, err := json.Marshal(cachedNode)
 		if err != nil {
 			return nil, err

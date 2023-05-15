@@ -179,12 +179,13 @@ func (be *VXLANBackend) RegisterNetwork(ctx context.Context, wg *sync.WaitGroup,
 	}
 	// -------- 结束 ---------
 
+	// 构建一些必要的属性提交给 kubeSubnetManager 使用
 	subnetAttrs, err := newSubnetAttrs(be.extIface.ExtAddr, be.extIface.ExtV6Addr, uint16(cfg.VNI), dev, v6Dev)
 	if err != nil {
 		return nil, err
 	}
 
-	// 获取节点当前子网租约
+	// 通过 kubeSubnetManager
 	lease, err := be.subnetMgr.AcquireLease(ctx, subnetAttrs)
 	switch err {
 	case nil:
